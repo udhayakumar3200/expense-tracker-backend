@@ -59,7 +59,7 @@ class Transaction(Base):
 
     description: Mapped[str] = mapped_column(String, nullable=True)
 
-    transaction_date: Mapped[datetime] = mapped_column(nullable=False)
+    transaction_date: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
 
     reference_hash: Mapped[str] = mapped_column(String, nullable=True, unique=True)
 

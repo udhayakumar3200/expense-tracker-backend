@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 
+from app import models  # noqa: F401 - register all models
 from app.api.accounts import router as accounts_router
 from app.api.transactions import router as transactions_router
 
