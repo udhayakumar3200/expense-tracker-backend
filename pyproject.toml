@@ -10,4 +10,6 @@ dependencies = [
     "asyncpg",
     "pydantic-settings",
     "alembic>=1.18.4",
+    "fastapi>=0.131.0",
+    "uvicorn[standard]",
 ]
