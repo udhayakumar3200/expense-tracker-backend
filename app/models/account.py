@@ -10,7 +10,6 @@ import enum
 class AccountType(str, enum.Enum):
     bank = "bank"
     cash = "cash"
-    upi = "upi"
     credit_card = "credit_card"
 
 
@@ -44,4 +43,10 @@ class Account(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         default=lambda: datetime.now(timezone.utc)
+    )
+
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        onupdate=lambda: datetime.now(timezone.utc)
     )
