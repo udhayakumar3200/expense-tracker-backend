@@ -21,6 +21,20 @@ class Settings(BaseSettings):
     DATABASE_MAX_OVERFLOW: int = 10
     DATABASE_POOL_TIMEOUT: int = 30
 
+    SUPABASE_URL: str
+    """Project URL, e.g. https://<ref>.supabase.co"""
+
+    SUPABASE_ANON_KEY: str | None = None
+    """Required to fetch JWKS from /auth/v1/keys (Supabase requires apikey header)."""
+
+    SUPABASE_JWT_AUDIENCE: str = "authenticated"
+    SUPABASE_JWT_SECRET: str | None = None
+    """JWT secret from Supabase dashboard; used when tokens are signed with HS256."""
+
+    @property
+    def supabase_jwt_issuer(self) -> str:
+        return f"{self.SUPABASE_URL.rstrip('/')}/auth/v1"
+
     @property
     def async_database_url(self) -> str:
         if self.DATABASE_URL:

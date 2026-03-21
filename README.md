@@ -17,8 +17,9 @@ expense-tracker-backend/
 ├── app/
 │   ├── api/                 # API route handlers
 │   │   ├── accounts.py      # Account endpoints
+│   │   ├── categories.py    # Category endpoints
 │   │   ├── transactions.py  # Transaction endpoints
-│   │   └── deps.py          # Dependencies (DB session, auth)
+│   │   └── deps.py          # Dependencies (DB session, Supabase JWT)
 │   ├── models/              # SQLAlchemy ORM models
 │   │   ├── user.py
 │   │   ├── account.py
@@ -26,10 +27,13 @@ expense-tracker-backend/
 │   │   └── transaction.py
 │   ├── schemas/             # Pydantic request/response schemas
 │   │   ├── account_schema.py
+│   │   ├── category_schema.py
 │   │   └── transaction_schema.py
 │   ├── services/            # Business logic layer
 │   │   ├── account_service.py
-│   │   └── transaction_service.py
+│   │   ├── category_service.py
+│   │   ├── transaction_service.py
+│   │   └── user_service.py
 │   ├── database/            # Database configuration
 │   │   ├── base.py          # SQLAlchemy Base
 │   │   └── session.py       # Async session management
@@ -55,6 +59,19 @@ uv run uvicorn app.main:app --reload
 
 Server runs at: `http://127.0.0.1:8000`  
 API Docs: `http://127.0.0.1:8000/docs`
+
+### Authentication (Supabase JWT)
+
+Protected routes require `Authorization: Bearer <access_token>` from Supabase Auth.
+
+| Variable | Purpose |
+|----------|---------|
+| `SUPABASE_URL` | Project URL (e.g. `https://<ref>.supabase.co`) |
+| `SUPABASE_ANON_KEY` | Sent as `apikey` when fetching JWKS from `/auth/v1/keys` (required for RS256) |
+| `SUPABASE_JWT_SECRET` | JWT secret from **Settings → API → JWT Secret**; required if access tokens use **HS256** |
+| `SUPABASE_JWT_AUDIENCE` | Defaults to `authenticated` |
+
+The server validates `aud` and `iss` (`{SUPABASE_URL}/auth/v1`), caches JWKS briefly, and auto-creates a `users` row on first request when the token is valid.
 
 ---
 
@@ -131,6 +148,23 @@ GET /api/accounts/get_accounts
 
 ---
 
+### Categories
+
+#### Create Category
+```
+POST /api/categories/create_category
+```
+**Request:** `{ "name": "Food", "type": "expense" }`  
+**Response:** Category object
+
+#### Get All Categories
+```
+GET /api/categories/get_categories
+```
+**Response:** List of category objects
+
+---
+
 ### Transactions
 
 #### Create Transaction
@@ -183,6 +217,19 @@ POST /api/transactions/create_transaction
 | `create_account()` | db, user_id, name, account_type, initial_balance | Creates a new account for the user |
 | `get_user_accounts()` | db, user_id | Returns all accounts belonging to the user |
 | `update_balance()` | db, account_id, new_balance | Directly updates an account's balance |
+
+### category_service.py
+
+| Function | Parameters | Description |
+|----------|------------|-------------|
+| `create_category()` | db, user_id, name, category_type | Creates a category for the user |
+| `get_user_categories()` | db, user_id | Lists categories for the user |
+
+### user_service.py
+
+| Function | Parameters | Description |
+|----------|------------|-------------|
+| `ensure_user()` | db, user_id, email | Inserts `users` row on first authenticated request if missing |
 
 ### transaction_service.py
 

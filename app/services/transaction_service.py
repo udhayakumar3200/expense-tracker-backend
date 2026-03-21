@@ -2,10 +2,11 @@ import uuid
 from datetime import datetime
 from decimal import Decimal
 
-from sqlalchemy import select
+from sqlalchemy import and_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.account import Account
+from app.models.category import Category
 from app.models.transaction import Transaction, TransactionType
 
 
@@ -22,11 +23,22 @@ async def create_transaction(
     reference_hash: str | None = None,
 ) -> Transaction:
     async with db.begin_nested():
+        if category_id is not None:
+            result = await db.execute(
+                select(Category).where(
+                    and_(Category.id == category_id, Category.user_id == user_id)
+                )
+            )
+            if result.scalar_one_or_none() is None:
+                raise ValueError("category not found")
+
         if transaction_type == TransactionType.expense:
             if from_account_id is None:
                 raise ValueError("Expense requires from_account_id")
             result = await db.execute(
-                select(Account).where(Account.id == from_account_id)
+                select(Account).where(
+                    and_(Account.id == from_account_id, Account.user_id == user_id)
+                )
             )
             from_account = result.scalar_one_or_none()
             if from_account is None:
@@ -37,7 +49,9 @@ async def create_transaction(
             if to_account_id is None:
                 raise ValueError("Income requires to_account_id")
             result = await db.execute(
-                select(Account).where(Account.id == to_account_id)
+                select(Account).where(
+                    and_(Account.id == to_account_id, Account.user_id == user_id)
+                )
             )
             to_account = result.scalar_one_or_none()
             if to_account is None:
@@ -48,14 +62,18 @@ async def create_transaction(
             if from_account_id is None or to_account_id is None:
                 raise ValueError("Transfer requires both from_account_id and to_account_id")
             result = await db.execute(
-                select(Account).where(Account.id == from_account_id)
+                select(Account).where(
+                    and_(Account.id == from_account_id, Account.user_id == user_id)
+                )
             )
             from_account = result.scalar_one_or_none()
             if from_account is None:
                 raise ValueError("from_account not found")
 
             result = await db.execute(
-                select(Account).where(Account.id == to_account_id)
+                select(Account).where(
+                    and_(Account.id == to_account_id, Account.user_id == user_id)
+                )
             )
             to_account = result.scalar_one_or_none()
             if to_account is None:
