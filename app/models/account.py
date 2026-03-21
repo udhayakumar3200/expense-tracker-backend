@@ -8,6 +8,7 @@ import enum
 
 
 class AccountType(str, enum.Enum):
+    upi = "upi"
     bank = "bank"
     cash = "cash"
     credit_card = "credit_card"
