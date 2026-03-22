@@ -13,6 +13,7 @@ engine = create_async_engine(
     pool_size=settings.DATABASE_POOL_SIZE,
     max_overflow=settings.DATABASE_MAX_OVERFLOW,
     pool_timeout=settings.DATABASE_POOL_TIMEOUT,
+    connect_args={"ssl": "require"}
 )
 
 AsyncSessionLocal = async_sessionmaker(
