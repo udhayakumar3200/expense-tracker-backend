@@ -15,7 +15,8 @@ engine = create_async_engine(
     pool_timeout=settings.DATABASE_POOL_TIMEOUT,
     connect_args={
         "ssl": "require",
-        "prepared_statement_cache_size": 0,  # required for Supabase Transaction mode pooler
+        "prepared_statement_cache_size": 0,  # SQLAlchemy-level cache: required for PgBouncer transaction mode
+        "statement_cache_size": 0,           # asyncpg-level cache: required for PgBouncer transaction mode
     },
 )
 
