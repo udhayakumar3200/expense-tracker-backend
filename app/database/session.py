@@ -13,7 +13,10 @@ engine = create_async_engine(
     pool_size=settings.DATABASE_POOL_SIZE,
     max_overflow=settings.DATABASE_MAX_OVERFLOW,
     pool_timeout=settings.DATABASE_POOL_TIMEOUT,
-    # connect_args={"ssl": "require"}
+    connect_args={
+        "ssl": "require",
+        "prepared_statement_cache_size": 0,  # required for Supabase Transaction mode pooler
+    },
 )
 
 AsyncSessionLocal = async_sessionmaker(
