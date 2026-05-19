@@ -176,3 +176,55 @@ async def test_transfer_bank_to_bank_unchanged():
 
     assert src.current_balance == Decimal("7000")
     assert dst.current_balance == Decimal("5000")
+
+
+# ── Revert behaviour (negative amounts) ──────────────────────────────────────
+
+async def test_cc_expense_revert_reduces_outstanding():
+    """Simulates delete_transaction reverting a CC expense."""
+    cc = MockAccount(AccountType.credit_card, credit_limit=Decimal("10000"), outstanding=Decimal("500"))
+    db = _mock_db()
+    with patch.object(transaction_service, "_get_owned_account", AsyncMock(return_value=cc)):
+        await transaction_service._apply_balance(
+            db=db, user_id=_uid(),
+            txn_type=TransactionType.expense, amount=Decimal("-500"),
+            from_account_id=_uid(), to_account_id=None,
+        )
+    assert cc.outstanding_balance == Decimal("0")
+
+
+async def test_cc_payment_revert_restores_both_balances():
+    """Simulates delete_transaction reverting a CC payment."""
+    bank = MockAccount(AccountType.bank, balance=Decimal("45000"))
+    cc = MockAccount(AccountType.credit_card, credit_limit=Decimal("10000"), outstanding=Decimal("3000"))
+    db = _mock_db()
+
+    call_count = {"n": 0}
+
+    async def get_account(db, user_id, account_id):
+        call_count["n"] += 1
+        return bank if call_count["n"] == 1 else cc
+
+    with patch.object(transaction_service, "_get_owned_account", side_effect=get_account):
+        await transaction_service._apply_balance(
+            db=db, user_id=_uid(),
+            txn_type=TransactionType.transfer, amount=Decimal("-5000"),
+            from_account_id=_uid(), to_account_id=_uid(),
+        )
+
+    assert bank.current_balance == Decimal("50000")
+    assert cc.outstanding_balance == Decimal("8000")
+
+
+async def test_cc_expense_revert_does_not_validate_limit():
+    """Revert must never fail due to limit checks even if it pushes below zero."""
+    cc = MockAccount(AccountType.credit_card, credit_limit=Decimal("1000"), outstanding=Decimal("0"))
+    db = _mock_db()
+    # Negative amount on a CC expense: no ValueError should be raised
+    with patch.object(transaction_service, "_get_owned_account", AsyncMock(return_value=cc)):
+        await transaction_service._apply_balance(
+            db=db, user_id=_uid(),
+            txn_type=TransactionType.expense, amount=Decimal("-500"),
+            from_account_id=_uid(), to_account_id=None,
+        )
+    assert cc.outstanding_balance == Decimal("-500")
