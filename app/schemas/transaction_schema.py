@@ -17,6 +17,16 @@ class TransactionCreate(BaseModel):
     description: str | None = None
 
 
+class TransactionUpdate(BaseModel):
+    amount: Decimal | None = None
+    type: TransactionType | None = None
+    transaction_date: datetime | None = None
+    from_account_id: uuid.UUID | None = None
+    to_account_id: uuid.UUID | None = None
+    category_id: uuid.UUID | None = None
+    description: str | None = None
+
+
 class TransactionResponse(BaseModel):
     id: uuid.UUID
     user_id: uuid.UUID

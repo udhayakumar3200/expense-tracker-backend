@@ -11,6 +11,11 @@ class CategoryCreate(BaseModel):
     type: CategoryType
 
 
+class CategoryUpdate(BaseModel):
+    name: str | None = None
+    type: CategoryType | None = None
+
+
 class CategoryResponse(BaseModel):
     id: uuid.UUID
     user_id: uuid.UUID

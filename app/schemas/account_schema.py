@@ -13,6 +13,12 @@ class AccountCreate(BaseModel):
     initial_balance: Decimal = Decimal("0")
 
 
+class AccountUpdate(BaseModel):
+    name: str | None = None
+    type: AccountType | None = None
+    current_balance: Decimal | None = None
+
+
 class AccountResponse(BaseModel):
     id: uuid.UUID
     user_id: uuid.UUID
