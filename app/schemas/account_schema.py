@@ -17,6 +17,8 @@ class AccountCreate(BaseModel):
     def validate_credit_card_fields(self) -> "AccountCreate":
         if self.type == AccountType.credit_card and self.credit_limit is None:
             raise ValueError("credit_limit is required for credit card accounts")
+        if self.type == AccountType.credit_card and self.credit_limit is not None and self.credit_limit <= 0:
+            raise ValueError("credit_limit must be greater than zero")
         if self.type != AccountType.credit_card and self.credit_limit is not None:
             raise ValueError("credit_limit is only valid for credit card accounts")
         return self
@@ -24,7 +26,6 @@ class AccountCreate(BaseModel):
 
 class AccountUpdate(BaseModel):
     name: str | None = None
-    type: AccountType | None = None
     current_balance: Decimal | None = None
 
 

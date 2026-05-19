@@ -54,7 +54,7 @@ async def _apply_balance(
         if to_account_id is None:
             raise ValueError("Income requires to_account_id")
         to_acc = await _get_owned_account(db, user_id, to_account_id)
-        if to_acc.type == AccountType.credit_card:
+        if to_acc.type == AccountType.credit_card and amount > 0:
             raise ValueError("Cannot record income directly to a credit card account")
         to_acc.current_balance += amount
 
@@ -63,7 +63,7 @@ async def _apply_balance(
             raise ValueError("Transfer requires both from_account_id and to_account_id")
         from_acc = await _get_owned_account(db, user_id, from_account_id)
         to_acc = await _get_owned_account(db, user_id, to_account_id)
-        if from_acc.type == AccountType.credit_card:
+        if from_acc.type == AccountType.credit_card and amount > 0:
             raise ValueError("Cannot transfer from a credit card account")
         if to_acc.type == AccountType.credit_card:
             credit_card_service.apply_cc_payment(from_acc, to_acc, amount)

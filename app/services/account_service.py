@@ -78,7 +78,6 @@ async def update_account(
     account_id: uuid.UUID,
     *,
     name: str | None = None,
-    account_type: AccountType | None = None,
     current_balance: Decimal | None = None,
 ) -> Account | None:
     account = await get_account(db, user_id, account_id)
@@ -86,8 +85,6 @@ async def update_account(
         return None
     if name is not None:
         account.name = name
-    if account_type is not None:
-        account.type = account_type
     if current_balance is not None:
         account.current_balance = current_balance
     await db.flush()

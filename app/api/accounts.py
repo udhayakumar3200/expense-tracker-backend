@@ -60,7 +60,6 @@ async def update_account(
         user_id=user_id,
         account_id=account_id,
         name=data.name,
-        account_type=data.type,
         current_balance=data.current_balance,
     )
     if account is None:
