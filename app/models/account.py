@@ -37,9 +37,9 @@ class Account(Base):
         nullable=False
     )
 
-    current_balance: Mapped[float] = mapped_column(
+    current_balance: Mapped[Decimal] = mapped_column(
         Numeric(12, 2),
-        default=0
+        default=Decimal("0")
     )
 
     credit_limit: Mapped[Decimal | None] = mapped_column(
