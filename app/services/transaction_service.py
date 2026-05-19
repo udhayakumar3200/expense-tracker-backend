@@ -6,9 +6,10 @@ from typing import Any
 from sqlalchemy import and_, delete, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.account import Account
+from app.models.account import Account, AccountType
 from app.models.category import Category
 from app.models.transaction import Transaction, TransactionType
+from app.services import credit_card_service
 
 
 async def _get_owned_account(
@@ -44,19 +45,31 @@ async def _apply_balance(
         if from_account_id is None:
             raise ValueError("Expense requires from_account_id")
         from_acc = await _get_owned_account(db, user_id, from_account_id)
-        from_acc.current_balance -= amount
+        if from_acc.type == AccountType.credit_card:
+            credit_card_service.apply_cc_expense(from_acc, amount)
+        else:
+            from_acc.current_balance -= amount
+
     elif txn_type == TransactionType.income:
         if to_account_id is None:
             raise ValueError("Income requires to_account_id")
         to_acc = await _get_owned_account(db, user_id, to_account_id)
+        if to_acc.type == AccountType.credit_card:
+            raise ValueError("Cannot record income directly to a credit card account")
         to_acc.current_balance += amount
+
     elif txn_type == TransactionType.transfer:
         if from_account_id is None or to_account_id is None:
             raise ValueError("Transfer requires both from_account_id and to_account_id")
         from_acc = await _get_owned_account(db, user_id, from_account_id)
         to_acc = await _get_owned_account(db, user_id, to_account_id)
-        from_acc.current_balance -= amount
-        to_acc.current_balance += amount
+        if from_acc.type == AccountType.credit_card:
+            raise ValueError("Cannot transfer from a credit card account")
+        if to_acc.type == AccountType.credit_card:
+            credit_card_service.apply_cc_payment(from_acc, to_acc, amount)
+        else:
+            from_acc.current_balance -= amount
+            to_acc.current_balance += amount
 
 
 async def _validate_category(
