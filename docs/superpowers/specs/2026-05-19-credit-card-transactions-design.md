@@ -170,3 +170,57 @@ For normal accounts these fields are `null`.
 | No credit limit set | Limit check skipped (nil guard in apply_cc_expense) |
 | Update transaction (type/amount changes) | Revert old balance then apply new — both paths use same dispatcher |
 | Delete transaction | Revert via negative amount — same dispatcher |
+
+---
+
+## Addendum 2026-05-20 — Boundary Validations
+
+The initial spec covered CC-specific behaviour but left several general transaction invariants unguarded. This addendum closes those gaps.
+
+### A1. Amount must be positive
+
+- `TransactionCreate.amount`: rejected if `<= 0`. Pydantic `Field(gt=0)`.
+- `TransactionUpdate.amount`: if explicitly set, must be `> 0`. Validator at the field level.
+
+Service-layer revert paths continue to receive negative amounts internally — the schema check applies only to API input.
+
+### A2. Invalid account combinations
+
+`_apply_balance` enforces shape invariants for each transaction type:
+
+| Type | `from_account_id` | `to_account_id` |
+|---|---|---|
+| `expense` | required | must be `None` |
+| `income` | must be `None` | required |
+| `transfer` | required | required |
+
+Errors:
+- `"Expense must not have a to_account_id"`
+- `"Income must not have a from_account_id"`
+- (existing) `"Expense requires from_account_id"`, `"Income requires to_account_id"`, `"Transfer requires both from_account_id and to_account_id"`
+
+These checks always apply — stored data should never violate them, so revert paths are unaffected.
+
+### A3. Same-account transfer blocked
+
+`_apply_balance` transfer branch rejects `from_account_id == to_account_id` with `"Cannot transfer to the same account"`. Applies on positive amounts only (reverts of valid stored transactions cannot violate this).
+
+### A4. Direct `current_balance` mutation on credit card accounts blocked
+
+`update_account` rejects any update that sets `current_balance` when the target account `type == credit_card`. CC accounts track debt via `outstanding_balance`; the cash-balance concept does not apply.
+
+Error: `"Cannot directly modify current_balance of a credit card account"`.
+
+The `PATCH /update_account/{id}` route wraps the service call in `try/except ValueError → HTTPException(400)` to match the pattern used by the transactions route.
+
+### Test coverage
+
+| Scenario | Test file |
+|---|---|
+| Reject zero / negative amount on create | `tests/test_transaction_schema_validation.py` (new) |
+| Reject zero / negative amount on update | `tests/test_transaction_schema_validation.py` (new) |
+| Expense with `to_account_id` blocked | `tests/test_transaction_service_cc.py` (extend) |
+| Income with `from_account_id` blocked | `tests/test_transaction_service_cc.py` (extend) |
+| Transfer with same from/to blocked | `tests/test_transaction_service_cc.py` (extend) |
+| CC `current_balance` direct update blocked | `tests/test_account_service_cc.py` (extend) |
+| Non-CC `current_balance` update still works | `tests/test_account_service_cc.py` (extend) |

@@ -2,13 +2,13 @@ import uuid
 from datetime import datetime
 from decimal import Decimal
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, field_validator
 
 from app.models.transaction import TransactionType
 
 
 class TransactionCreate(BaseModel):
-    amount: Decimal
+    amount: Decimal = Field(gt=0)
     type: TransactionType
     transaction_date: datetime
     from_account_id: uuid.UUID | None = None
@@ -25,6 +25,13 @@ class TransactionUpdate(BaseModel):
     to_account_id: uuid.UUID | None = None
     category_id: uuid.UUID | None = None
     description: str | None = None
+
+    @field_validator("amount")
+    @classmethod
+    def _amount_must_be_positive(cls, v: Decimal | None) -> Decimal | None:
+        if v is not None and v <= 0:
+            raise ValueError("amount must be greater than 0")
+        return v
 
 
 class TransactionResponse(BaseModel):
