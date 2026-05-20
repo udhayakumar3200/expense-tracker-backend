@@ -228,3 +228,40 @@ async def test_cc_expense_revert_does_not_validate_limit():
             from_account_id=_uid(), to_account_id=None,
         )
     assert cc.outstanding_balance == Decimal("-500")
+
+
+# ── Structural invariants ────────────────────────────────────────────────────
+
+async def test_expense_with_to_account_id_is_blocked():
+    db = _mock_db()
+    with patch.object(transaction_service, "_get_owned_account", AsyncMock()):
+        with pytest.raises(ValueError, match="Expense must not have a to_account_id"):
+            await transaction_service._apply_balance(
+                db=db, user_id=_uid(),
+                txn_type=TransactionType.expense, amount=Decimal("100"),
+                from_account_id=_uid(), to_account_id=_uid(),
+            )
+
+
+async def test_income_with_from_account_id_is_blocked():
+    db = _mock_db()
+    with patch.object(transaction_service, "_get_owned_account", AsyncMock()):
+        with pytest.raises(ValueError, match="Income must not have a from_account_id"):
+            await transaction_service._apply_balance(
+                db=db, user_id=_uid(),
+                txn_type=TransactionType.income, amount=Decimal("100"),
+                from_account_id=_uid(), to_account_id=_uid(),
+            )
+
+
+async def test_transfer_same_account_is_blocked():
+    same_id = _uid()
+    bank = MockAccount(AccountType.bank, balance=Decimal("1000"))
+    db = _mock_db()
+    with patch.object(transaction_service, "_get_owned_account", AsyncMock(return_value=bank)):
+        with pytest.raises(ValueError, match="Cannot transfer to the same account"):
+            await transaction_service._apply_balance(
+                db=db, user_id=_uid(),
+                txn_type=TransactionType.transfer, amount=Decimal("100"),
+                from_account_id=same_id, to_account_id=same_id,
+            )
