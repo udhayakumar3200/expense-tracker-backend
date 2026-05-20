@@ -83,6 +83,10 @@ async def update_account(
     account = await get_account(db, user_id, account_id)
     if account is None:
         return None
+    if current_balance is not None and account.type == AccountType.credit_card:
+        raise ValueError(
+            "Cannot directly modify current_balance of a credit card account"
+        )
     if name is not None:
         account.name = name
     if current_balance is not None:

@@ -94,3 +94,71 @@ async def test_create_bank_account_does_not_set_cc_fields():
     assert acc.credit_limit is None
     assert acc.outstanding_balance is None
     assert acc.current_balance == Decimal("10000")
+
+
+# ── update_account: direct current_balance mutation on CC blocked ────────────
+
+
+def _patched_get_account(account):
+    return patch.object(account_service, "get_account", AsyncMock(return_value=account))
+
+
+async def test_update_account_blocks_cc_current_balance_mutation():
+    cc = Account(
+        user_id=uuid.uuid4(),
+        name="Visa",
+        type=AccountType.credit_card,
+        current_balance=Decimal("0"),
+        credit_limit=Decimal("10000"),
+        outstanding_balance=Decimal("2000"),
+    )
+    db = make_mock_db()
+    with _patched_get_account(cc):
+        with pytest.raises(ValueError, match="Cannot directly modify current_balance"):
+            await account_service.update_account(
+                db=db,
+                user_id=uuid.uuid4(),
+                account_id=uuid.uuid4(),
+                current_balance=Decimal("5000"),
+            )
+
+
+async def test_update_account_allows_cc_name_change():
+    cc = Account(
+        user_id=uuid.uuid4(),
+        name="Visa",
+        type=AccountType.credit_card,
+        current_balance=Decimal("0"),
+        credit_limit=Decimal("10000"),
+        outstanding_balance=Decimal("2000"),
+    )
+    db = make_mock_db()
+    with _patched_get_account(cc):
+        result = await account_service.update_account(
+            db=db,
+            user_id=uuid.uuid4(),
+            account_id=uuid.uuid4(),
+            name="Visa Platinum",
+        )
+    assert result is cc
+    assert cc.name == "Visa Platinum"
+    assert cc.current_balance == Decimal("0")
+
+
+async def test_update_account_allows_bank_current_balance_change():
+    bank = Account(
+        user_id=uuid.uuid4(),
+        name="HDFC",
+        type=AccountType.bank,
+        current_balance=Decimal("10000"),
+    )
+    db = make_mock_db()
+    with _patched_get_account(bank):
+        result = await account_service.update_account(
+            db=db,
+            user_id=uuid.uuid4(),
+            account_id=uuid.uuid4(),
+            current_balance=Decimal("12500"),
+        )
+    assert result is bank
+    assert bank.current_balance == Decimal("12500")

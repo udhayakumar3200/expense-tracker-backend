@@ -55,13 +55,16 @@ async def update_account(
     db: AsyncSession = Depends(get_db),
     user_id: uuid.UUID = Depends(get_current_user_id),
 ):
-    account = await account_service.update_account(
-        db=db,
-        user_id=user_id,
-        account_id=account_id,
-        name=data.name,
-        current_balance=data.current_balance,
-    )
+    try:
+        account = await account_service.update_account(
+            db=db,
+            user_id=user_id,
+            account_id=account_id,
+            name=data.name,
+            current_balance=data.current_balance,
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     if account is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="account not found")
     return account
