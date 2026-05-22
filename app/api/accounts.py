@@ -23,6 +23,7 @@ async def create_account(
         account_type=data.type,
         initial_balance=data.initial_balance,
         credit_limit=data.credit_limit,
+        outstanding_balance=data.outstanding_balance,
     )
     return account
 

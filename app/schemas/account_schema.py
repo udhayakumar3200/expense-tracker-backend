@@ -12,6 +12,7 @@ class AccountCreate(BaseModel):
     type: AccountType
     initial_balance: Decimal = Decimal("0")
     credit_limit: Decimal | None = None
+    outstanding_balance: Decimal | None = None
 
     @model_validator(mode="after")
     def validate_credit_card_fields(self) -> "AccountCreate":
@@ -21,6 +22,8 @@ class AccountCreate(BaseModel):
             raise ValueError("credit_limit must be greater than zero")
         if self.type != AccountType.credit_card and self.credit_limit is not None:
             raise ValueError("credit_limit is only valid for credit card accounts")
+        if self.type != AccountType.credit_card and self.outstanding_balance is not None:
+            raise ValueError("outstanding_balance is only valid for credit card accounts")
         return self
 
 

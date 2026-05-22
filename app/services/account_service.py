@@ -15,6 +15,7 @@ async def create_account(
     account_type: AccountType,
     initial_balance: Decimal = Decimal("0"),
     credit_limit: Decimal | None = None,
+    outstanding_balance: Decimal | None = None,
 ) -> Account:
     is_cc = account_type == AccountType.credit_card
     account = Account(
@@ -23,7 +24,7 @@ async def create_account(
         type=account_type,
         current_balance=Decimal("0") if is_cc else initial_balance,
         credit_limit=credit_limit if is_cc else None,
-        outstanding_balance=Decimal("0") if is_cc else None,
+        outstanding_balance=(outstanding_balance if outstanding_balance is not None else Decimal("0")) if is_cc else None,
     )
     db.add(account)
     await db.flush()
